@@ -1,0 +1,295 @@
+---
+title: " The Bermuda Atlantic Time-series Study (BATS) "
+author: "Jenniffer Perez"
+date: "2023-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(seacarb)
+library(performance)
+library(see)
+library(ggplot2)
+library(ggmap)
+library(tibble)
+```
+
+**1.  Introduction:**
+
+The Bermuda Atlantic Time-series Study (BATS) history was created to answer scientific questions to study oceanography problems.  Some of these questions addressed how the ocean reacts to global climate change, and how does the ecosystem balances. All these questions were answered through an in-depth data analysis for data collection over a long period of time.  The program first started in 1954, when Dr.  Henry M. Stommel initiated a deep-water research monitoring known as the Hydrostation `S` to acquired information of the ocean.  Some of the data collected included temperature, salinity and dissolved oxygen measurements. Eventually, the program was linked to BIOS and the U.S. Joint Global Ocean Flux Study program that started in 1988.  BATS was designed to study the ocean and analyze important hydrographic and biological parameters through the water column.  With the data available to scientist and oceanographers can be used to study the ocean physical, chemical and biological processes and uncover new observations about the ocean.  BATS DATA can also help understand better the chemical cycle such as the active carbon transport and the biological Carbon Pump.  The BATS data continues to be available worldwide and integrates new technology with methods to approach new ocean innovations. The = BATS data was used to adress the following questions: Is surface ocean pCO2 increasing? Is surface ocean seawater pH decreasing? Is surface ocean seawater saturation state with respect to aragonite decreasing? This data can help the scientific community to advance in new future studies on ocean processess.  
+
+
+
+BATS data Variables available:
+
+#yyyymmdd = Year Month Day   
+#decy   = Decimal Year     
+#time   = Time (hhmm)      
+#latN   = Latitude (Deg N) 
+#lonW   = Longitude (Deg W)
+#Depth  = Depth (m)                  
+#Temp   = Temperature ITS-90 (C)    
+#CTD_S  = CTD Salinity (PSS-78)      
+#Sal1   = Salinity-1 (PSS-78)        
+#Sig-th = Sigma-Theta (kg/m^3)       
+#O2(1)  = Oxygen-1 (umol/kg)          
+#OxFixT = Oxygen Fix Temp (C)        
+#Anom1  = Oxy Anomaly-1 (umol/kg)    
+#CO2    = dissolved inorganic carbon (umol/kg)              
+#Alk    = Alkalinity (uequiv)        
+#NO31   = Nitrate+Nitrite-1 (umol/kg)
+#NO21   = Nitrite-1 (umol/kg)        
+#PO41   = Phosphate-1 (umol/kg)      
+#Si1    = Silicate-1 (umol/kg)       
+#POC    = POC (ug/kg)                
+#PON    = PON (ug/kg)                
+#TOC    = TOC (umol/kg)                
+#TN     = TN (umol/kg)  
+#Bact   = Bacteria enumeration (cells*10^8/kg)   
+#POP    = POP (umol/kg)
+#TDP    = Total dissolved Phosphorus (nmol/kg)
+#SRP    = Low-level phosphorus (nmol/kg)
+#BSi    = Particulate biogenic silica (umol/kg)
+#LSi    = Particulate lithogenic silica  (umol/kg)
+#Pro    = Prochlorococcus (cells/ml)
+#Syn    = Synechococcus (cells/ml)
+#Piceu  = Picoeukaryotes (cells/ml)
+#Naneu  = Nanoeukaryotes (cells/ml)
+
+**2.  Methods:**
+
+BATS data long-term time series data has been gathered biweekly from 1954 for parameters such as: temperature, conductivity, pressure, dissolved oxygen, fluorescence, salinity, total CO2, alkalinity, nitrate, nitrite, phosphate, silicate, dissolved organic carbon, dissolved organic nitrogen, particulate silicate, phytoplankton pigments, fluorometric Chlorophyll a, and bacteria enumeration for the Island of the Bahamas.  In this assignment the surface ocean carbon dioxide was measured, using the BATS data available in (website).  Also, the ocean surface seawater pH decreasing was observed , and the surface ocean seater saturation state was observed for aragonite.
+TEOS data was used to assessed the pressure for pCO2 data. Seacrab data was used to for the parameters of the seawater carbonate system. In addition, ANOVA statistical test was used to see if there were any variability withing the results.  Also an interval of confidence was used 95% 
+  
+Study Map:
+
+api_secret = "AIzaSyAC_rutO8V2SCfOxLoAJ5bkbUBHDacguUc"
+register_google(key=AIzaSyAC_rutO8V2SCfOxLoAJ5bkbUBHDacguUc)
+ 
+**3.  Results:**
+
+    3.1. Data import:
+
+```{r, include=TRUE, echo= TRUE, warning=FALSE, message=FALSE, results=FALSE}
+
+# Step 1: Data imported from BATS
+
+bats_bottle <- read_delim("bats_bottle.txt", 
+                          delim = "\t",
+                          escape_double = FALSE, 
+                          col_names = FALSE, trim_ws = TRUE, skip = 60)
+
+# Import column names from BATS and assign to Data
+colnames(bats_bottle) <- colnames(read_csv("bats_bottle.txt", skip = 59))
+
+# View the imported BATS data 
+View(bats_bottle)
+```
+
+  **CO2 Chemestry Parameters**
+pCO2
+?carb
+
+
+
+```{r}
+#We have TA, DIC, S, T, Pt, Sit, but we don't have pressure
+
+#Step 1:  First we need to calculate pressure (dbar) using TEOS-10:
+?gsw
+#p = gsw_p_from_z(z,lat)
+bats_co2=bats_bottle %>% 
+  mutate(P_dbar=gsw_p_from_z(Depth*-1,latN))
+View(bats_co2)
+
+#We now have all of the variables that we need to calculate the surface seawater chemistry at the BATS station, but that we need to be very careful about our units!
+#We now have TA, DIC, S, T, Pt, Sit, Pressure
+#What are the units of these and what does CO2SYS need?
+
+#TA is in uequiv (umol/kg) and we need mol/kg
+# Alk*10^-6
+
+#DIC is in umol/kg and we need mol/kg
+# CO2*10^-6
+
+#S is in PSS and we will use EOS80
+# Sal1
+
+#T is in degrees C and we need degrees C
+# Temp
+
+#Pt is in umol/kg and we need mol/kg
+# PO41*10^-6
+
+#SiT is in umol/kg and we need mol/kg
+# Si1*10^-6
+
+#P_dbar is in dbar and we need bar
+# P_dbar/10 OR P_dbar*10^-1
+# #We will need to convert units scaling when using CO2SYS
+#flag = 15 ALK and DIC given
+?carb
+
+bats_co2sys=
+  bats_co2 %>% 
+  filter(Alk!=-999,CO2!=-999,Sal1!=-999,Temp!=-999,
+         P_dbar!=-999,PO41!=-999,Si1!=-999,
+         lonW!=-999,latN!=-999)%>% 
+  rename(DIC=CO2) %>% 
+  mutate(carb(flag=15, var1=Alk*10^-6, var2=DIC*10^-6, 
+              S=Sal1, T=Temp, Patm=1, P=P_dbar*10^-1, 
+              Pt=PO41*10^-6, Sit=Si1*10^-6,
+              k1k2="l", kf="pf", ks="d", pHscale="T", 
+              b="u74", gas="potential", 
+              warn="y", eos="eos80",long=360-lonW, lat=latN))
+
+bats_co2sys_surf = bats_co2sys %>% 
+  filter(Depth<100) %>%  #we are selecting only the upper 100m
+  filter(pCO2insitu>100) 
+
+
+bats_co2sys_surf %>% 
+  ggplot(mapping=aes(x=decy,y=pCO2insitu))+
+  geom_point()+
+  geom_smooth()
+
+check=bats_co2sys_surf %>% 
+  filter(pCO2<200)
+
+pco2_model = lm(pCO2insitu~decy,data=bats_co2sys_surf)
+summary(pco2_model)
+
+
+check_model(pco2_model) 
+summary(pco2_model) #pvalue is same as anova
+anova(pco2_model) #pvalue is same as summary
+
+
+bats_co2sys_surf_pred=
+bats_co2sys_surf %>% 
+  mutate(predict(pco2_model,interval='confidence',level=0.95))
+
+bats_co2sys_surf_pred=
+cbind(bats_co2sys_surf, predict(pco2_model, interval = 'confidence',level=0.95))
+
+bats_co2sys_surf_pred %>% 
+  ggplot()+
+  geom_point(mapping=aes(x=decy,y=pCO2insitu))+
+  geom_line(aes(decy,fit),color="purple")+
+  geom_ribbon(aes(x=decy,ymin=lwr,ymax=upr),alpha=0.2,fill="purple")+
+  theme_classic()
+
+
+
+bats_co2sys_surf$year=
+  as.numeric(substr(bats_co2sys_surf$yyyymmdd,1,4))
+bats_co2sys_surf$month=
+  as.numeric(substr(bats_co2sys_surf$yyyymmdd,5,6))
+
+
+m1=lm(pCO2insitu~decy,data=bats_co2sys_surf)
+m2=lm(pCO2insitu~year+month,data=bats_co2sys_surf)
+m3=lm(pCO2insitu~Temp+year+month,data=bats_co2sys_surf)
+summary(m1) #r^2=0.3
+summary(m2) #r^2=0.4
+summary(m3) #r^2=0.7
+AIC(m1,m2,m3) #use AIC to select models (lower AIC = better model)
+
+
+bats_surf_sub=
+  bats_co2sys_surf %>%
+  filter(year!=-999,month!=-999,Sal1!=-999,Temp!=-999,
+         `O2(1)`!=-999,`NO31`!=-999,`NO21`!=-999,
+         `PO41`!=-999)
+
+step(lm(pCO2insitu~1,data=bats_surf_sub),
+     direction="forward",
+     trace = 1,
+     scope = ~year+month+Sal1+Temp+`O2(1)`+`NO31`+`NO21`+ `PO41`)
+  
+model_AIC=lm(pCO2insitu ~ Temp + year + NO31 + Sal1 + NO21, data = bats_surf_sub)
+summary(model_AIC)  
+check_model(model_AIC)
+
+bats_surf_sub_pred=
+  cbind(bats_surf_sub, 
+        predict(model_AIC, interval = 'confidence',level=0.95))
+
+#add prediction line to ggplot
+bats_surf_sub_pred %>% 
+  ggplot()+
+  geom_point(mapping=aes(x=decy,y=pCO2insitu))+
+  geom_line(aes(decy,fit),color="purple")+
+  geom_ribbon(aes(x=decy,ymin=lwr,ymax=upr),alpha=0.2,fill="purple")+
+  theme_classic()
+
+bats_surf_sub_pred %>% 
+  ggplot()+
+  geom_point(mapping=aes(x=decy,y=pCO2insitu-fit))+
+  labs(y="Carbon Dioxide Presure Insitu", x="Years")+
+  labs(caption="Plot for carbon dioxide presure collected in-situ for the data collected from BATS from the Bermudas. Points are showing the data from BATS from the Bermudas.  A linear model was applied with a 95% confidence interval")+
+  theme_classic()
+
+anova(pco2_model)
+summary(model_AIC)  
+check_model(model_AIC)
+
+#also show plot with model. The figure caption describes plot (points=data, line=model, shaded region = 95% confidence intervals.)
+  
+
+```
+
+###############################################
+
+**# 2) Is surface ocean seawater pH decreasing?**
+
+```{r}
+bats_surf_sub_pred %>% 
+  ggplot()+
+  geom_point(mapping=aes(x=decy,y=pH))+
+  labs(y="pH", x="Years")+
+  labs(caption="Plot for pH values for the data collected from BATS from the Bermudas.Points are showing the data from BATS from the Bermudas.  A linear model was applied with a 95% confidence interval")+
+  theme_classic()
+
+model_AIC=lm(pH ~ Temp + year + NO31 + Sal1 + NO21, data = bats_surf_sub)
+summary(model_AIC)  
+check_model(model_AIC)
+
+#also show plot with model. The figure caption describes plot (points=data, line=model, shaded region = 95% confidence intervals.)
+
+```
+
+
+**Aragonite**
+
+
+```{r}
+bats_surf_sub_pred %>% 
+  ggplot()+
+  geom_point(mapping=aes(x=decy,y=OmegaAragonite))+
+  labs(y="Omega Aragonite", x="Years")+
+  labs(caption="Plot for omega aragonitee for the data collected from BATS from the Bermudas. Points are presenting the data used for omega aragonite from BATS data adquired in the Bermudas.  A linear model was applied to the data with a 95% confidence interval.")+
+  theme_classic()
+
+model_AIC=lm(OmegaAragonite ~ Temp + year + NO31 + Sal1 + NO21, data = bats_surf_sub)
+summary(model_AIC)  
+check_model(model_AIC)
+```
+
+
+**4.Discussion**
+
+    4.1. Surface Ocean pCO2
+    
+    The data used for surface ocean pCO2 shows a seasonal cycle in surface ocean pCO2 at BATS with higher pCO2 observed in late summer to early fall and lower pCO2 observed in late winter and early spring. There is a a consistent, detectable (ANOVA, p<0.001) annual increase in pCO2 by 1.85+-0.07 uatm/year.
+    
+    
+    4.2. Surface Ocean pH
+    
+    The data used for surface ocean pH indicates a decrease of pH values throughout the years for the Bermudas.  The data shows a seasonal cycle in surface ocean pH where high values are observed in summer and lower values are observed in winter.  Surface ocean pH for the Bermudas ranged from 8 to 8.2 values.  It also indicates that there is a decrease in pH values by -1.387e-03 for the years studied.  The linear regresion model (ANOVA, p<0.001)  presented a non correlation.   the results from the residuals and coefficients suggest that temperature, year, NO31, Sal1, and NO21 have significant impacts on the residuals, which may indicate their influence on the outcome being measured.  
+
+     4.3. Surface ocean seawater saturation state with respect to aragonite
+    
+     The plot for surface ocean seawater saturation state with respect to omega aragonite presents a slight decrease throughout the years.  Data presents seasonal cycle in surface ocean seawater saturation to omega aragonoite shows high values in summer and low values around winter.  A lineal regresion analysis was applied to the data to test for correlation.  The data presented significance findings in relationships between the Omega Aragonite and years.  The coefficient estimates that for each year omega aragonite is supposed to decrease by 0.0081583 Ω.
